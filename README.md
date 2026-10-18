@@ -4,6 +4,7 @@ A handwritten letter in a wax-sealed envelope. No logins, no database: the lette
 
 - **Sender:** write the letter, pick a handwriting font and wax color, copy the link.
 - **Recipient:** opens the link, presses and holds the seal, the wax breaks, the letter unfolds.
+- **Music (optional):** paste a YouTube link (or a direct `.mp3` link). It starts playing when the seal breaks, in a small player with a pause button. Only the video ID goes in the link; no audio is hosted here.
 
 ## Run locally
 
