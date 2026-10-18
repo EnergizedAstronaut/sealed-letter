@@ -13,6 +13,7 @@
 :root{
   --bg:#2a1f1a; --bg2:#3b2b23; --paper:#f6ecd6; --paper2:#eadcb9; --ink:#2b2a4a;
   --seal:#9b1c24; --seal-hi:#c4343d; --seal-lo:#5e0d13;
+  --seal-bg:radial-gradient(circle at 35% 30%,#c4343d,#9b1c24 55%,#5e0d13);
   --ui:'Cormorant Garamond',Georgia,serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -59,7 +60,7 @@ button.ghost{background:none;border:1px solid #7a604d;color:#f3e7d3;border-radiu
 .seal{position:absolute;left:50%;top:58%;width:84px;height:84px;margin:-42px 0 0 -42px;z-index:8;border-radius:50%;cursor:pointer;
   transition:transform .25s,opacity .5s;touch-action:none;user-select:none;-webkit-user-select:none}
 .seal .blob{position:absolute;inset:0;border-radius:46% 54% 50% 50% / 52% 46% 54% 48%;
-  background:radial-gradient(circle at 35% 30%,var(--seal-hi),var(--seal) 55%,var(--seal-lo));
+  background:var(--seal-bg);
   box-shadow:0 6px 10px rgba(0,0,0,.5),inset 0 -5px 8px rgba(0,0,0,.4),inset 0 4px 6px rgba(255,255,255,.25)}
 .seal .ring{position:absolute;inset:10px;border-radius:50%;border:2px solid rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .seal .ch{position:absolute;inset:0;display:grid;place-items:center;font-family:'Dancing Script',cursive;font-size:2.1rem;color:rgba(30,5,10,.8);
@@ -93,7 +94,7 @@ button.ghost{background:none;border:1px solid #7a604d;color:#f3e7d3;border-radiu
 .paper .greet{font-size:1.9em;margin-bottom:10px;padding-right:40px}
 .paper .body{white-space:pre-wrap;font-size:1.55em;line-height:34px;overflow-wrap:anywhere}
 .paper .sig{margin-top:22px;font-size:1.9em;text-align:right}
-.paper .stamp{position:absolute;right:16px;top:12px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--seal-hi),var(--seal) 60%,var(--seal-lo));opacity:.9}
+.paper .stamp{position:absolute;right:16px;top:12px;width:36px;height:36px;border-radius:50%;background:var(--seal-bg);opacity:.9}
 .f-caveat{font-family:'Caveat',cursive}.f-apple{font-family:'Homemade Apple',cursive}
 .f-beanie{font-family:'Reenie Beanie',cursive}.f-dancing{font-family:'Dancing Script',cursive}
 .paper .body.f-apple{font-size:1.1em;line-height:34px}
@@ -199,7 +200,10 @@ const COLORS=[
  {n:'Forest',a:'#27553b',h:'#4a8a63',l:'#102b1d'},
  {n:'Gold',a:'#b0872d',h:'#e0bd62',l:'#6b4d12'},
  {n:'Plum',a:'#5c2a5e',h:'#8f4f92',l:'#2e0f30'},
- {n:'Black',a:'#2a2a2e',h:'#55555c',l:'#0c0c0e'}
+ {n:'Black',a:'#2a2a2e',h:'#55555c',l:'#0c0c0e'},
+ {n:'Lilac',a:'#A47DAB',h:'#c9a8cf',l:'#694a6f'},
+ {n:'Royal blue',a:'#305CDE',h:'#6a8ff0',l:'#1a358f'},
+ {n:'Lilac + Royal blue',a:'#A47DAB',h:'#c9a8cf',l:'#694a6f',b:'#305CDE'}
 ];
 const FONTS=['caveat','apple','beanie','dancing'];
 const $=id=>document.getElementById(id);
@@ -215,9 +219,16 @@ const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='='
 async function encode(o){return b64u(await pipe(new TextEncoder().encode(JSON.stringify(o)),new CompressionStream('deflate-raw')))}
 async function decode(s){return JSON.parse(new TextDecoder().decode(await pipe(unb64u(s),new DecompressionStream('deflate-raw'))))}
 
+/* combo colors (with .b) are split down the middle: left half .a, right half .b, under one shared highlight */
+function waxBg(c){
+  if(c.b)return `radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),rgba(255,255,255,0) 45%,rgba(0,0,0,0) 60%,rgba(0,0,0,.4)),linear-gradient(90deg,${c.a} 50%,${c.b} 50%)`;
+  return `radial-gradient(circle at 35% 30%,${c.h},${c.a} 55%,${c.l})`;
+}
+const waxColors=()=>{const c=COLORS[colorIdx]||COLORS[0];return c.b?[c.a,c.b]:[c.a]};
 function applyColor(i){
-  const c=COLORS[i]||COLORS[0];const r=document.documentElement.style;
-  r.setProperty('--seal',c.a);r.setProperty('--seal-hi',c.h);r.setProperty('--seal-lo',c.l);
+  colorIdx=COLORS[i]?i:0;
+  const c=COLORS[colorIdx];const r=document.documentElement.style;
+  r.setProperty('--seal',c.a);r.setProperty('--seal-hi',c.h);r.setProperty('--seal-lo',c.l);r.setProperty('--seal-bg',waxBg(c));
 }
 const fontClass=f=>'f-'+(FONTS.includes(f)?f:'caveat');
 
@@ -227,7 +238,7 @@ function initCreator(){
   const sw=$('swatches');
   COLORS.forEach((c,i)=>{
     const d=document.createElement('button');d.type='button';d.className='sw'+(i===0?' on':'');d.title=c.n;d.setAttribute('aria-label',c.n+' wax');
-    d.style.background=`radial-gradient(circle at 35% 30%,${c.h},${c.a} 55%,${c.l})`;
+    d.style.background=waxBg(c);
     d.onclick=()=>{colorIdx=i;[...sw.children].forEach(x=>x.classList.remove('on'));d.classList.add('on');applyColor(i)};
     sw.appendChild(d);
   });
@@ -292,7 +303,7 @@ async function initViewer(hash){
   function shards(){
     const r=seal.getBoundingClientRect(),s=scene.getBoundingClientRect();
     for(let i=0;i<9;i++){
-      const el=document.createElement('div');el.className='shard';
+      const el=document.createElement('div');el.className='shard';el.style.background=waxColors()[i%waxColors().length];
       el.style.left=(r.left-s.left+36)+'px';el.style.top=(r.top-s.top+36)+'px';
       scene.appendChild(el);
       const a=Math.random()*Math.PI*2,v=50+Math.random()*80;
@@ -319,10 +330,11 @@ async function initViewer(hash){
 function petals(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const c=$('petals'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
-  const P=Array.from({length:26},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.6,r:4+Math.random()*5,vy:.6+Math.random()*1.1,vx:(Math.random()-.5)*.8,a:Math.random()*6}));
+  const wc=waxColors().map(h=>h+'99');
+  const P=Array.from({length:26},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.6,r:4+Math.random()*5,vy:.6+Math.random()*1.1,vx:(Math.random()-.5)*.8,a:Math.random()*6,c:wc[Math.floor(Math.random()*wc.length)]}));
   let t=0;(function f(){t++;x.clearRect(0,0,c.width,c.height);
     P.forEach(p=>{p.y+=p.vy;p.x+=p.vx+Math.sin((t+p.a*40)/40)*.5;p.a+=.03;
-      x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle='rgba(180,40,50,.55)';x.beginPath();x.ellipse(0,0,p.r,p.r*.55,0,0,7);x.fill();x.restore()});
+      x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.beginPath();x.ellipse(0,0,p.r,p.r*.55,0,0,7);x.fill();x.restore()});
     if(t<420)requestAnimationFrame(f);else x.clearRect(0,0,c.width,c.height)})();
 }
 
