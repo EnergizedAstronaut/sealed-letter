@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.set("X-Robots-Tag", "noindex, nofollow");
-  res.set("Referrer-Policy", "no-referrer");
+  res.set("Referrer-Policy", "strict-origin"); // origin only: YouTube embeds refuse to play without a referrer
   next();
 });
 app.get("/healthz", (req, res) => res.send("ok"));

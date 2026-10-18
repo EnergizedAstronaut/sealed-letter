@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin">
 <title>Sealed Letter</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='%239b1c24'/><circle cx='32' cy='32' r='20' fill='none' stroke='%235e0d13' stroke-width='3'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,6 +34,15 @@ input:focus,textarea:focus,select:focus{outline:2px solid #c9a25c;border-color:t
 .row{display:flex;gap:12px}.row>*{flex:1;min-width:0}
 .count{font-size:.9rem;opacity:.5;text-align:right;margin-top:4px}
 .swatches{display:flex;gap:10px;flex-wrap:wrap}
+.custom{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid #5a4538;border-radius:10px}
+.custom.on{border-color:#fff}
+.custom .lbl{font-size:1rem;opacity:.75;display:flex;align-items:center;gap:8px;cursor:pointer}
+.custom input[type=color]{width:38px;height:38px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer}
+.custom input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.custom input[type=color]::-webkit-color-swatch{border:2px solid #7a604d;border-radius:50%}
+.custom input[type=color]::-moz-color-swatch{border:2px solid #7a604d;border-radius:50%}
+.custom input[type=checkbox]{width:18px;height:18px;accent-color:#c9a25c}
+.custom input[type=color]:disabled{opacity:.3;cursor:default}
 .sw{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 -4px 6px rgba(0,0,0,.35),inset 0 3px 5px rgba(255,255,255,.25)}
 .sw.on{border-color:#fff}
 button.primary{margin-top:22px;width:100%;padding:15px;border:0;border-radius:12px;background:linear-gradient(#c9a25c,#a47f3d);color:#2a1f1a;font:inherit;font-weight:600;font-size:1.3rem;cursor:pointer}
@@ -112,6 +122,9 @@ button.ghost{background:none;border:1px solid #7a604d;color:#f3e7d3;border-radiu
 .music button{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid #7a604d;background:none;color:#f3e7d3;font-size:1rem;cursor:pointer}
 .music .notes{display:inline-block;animation:bob 1.6s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-3px)}}
+.music.tap iframe{width:160px;height:90px;outline:2px solid #c9a25c;animation:glow 1.6s ease-in-out infinite}
+.music.tap .mname small::after{content:" (tap the video to play)";color:#c9a25c}
+@keyframes glow{50%{outline-color:transparent}}
 #songNote.ok{color:#c9a25c;opacity:.9}#songNote.bad{color:#e08a7a;opacity:.9}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
 </style>
@@ -146,6 +159,10 @@ button.ghost{background:none;border:1px solid #7a604d;color:#f3e7d3;border-radiu
 
     <label>Wax color</label>
     <div class="swatches" id="swatches"></div>
+    <div class="custom" id="custom">
+      <label class="lbl">Any color <input type="color" id="cc1" value="#a47dab" aria-label="Custom wax color"></label>
+      <label class="lbl"><input type="checkbox" id="ccSplit"> Split with <input type="color" id="cc2" value="#305cde" aria-label="Second wax color" disabled></label>
+    </div>
 
     <label for="signoff">Sign-off</label>
     <input id="signoff" maxlength="30" value="with love,">
@@ -246,12 +263,25 @@ function waxBg(c){
   if(c.b)return `radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),rgba(255,255,255,0) 45%,rgba(0,0,0,0) 60%,rgba(0,0,0,.4)),linear-gradient(90deg,${c.a} 50%,${c.b} 50%)`;
   return `radial-gradient(circle at 35% 30%,${c.h},${c.a} 55%,${c.l})`;
 }
-const waxColors=()=>{const c=COLORS[colorIdx]||COLORS[0];return c.b?[c.a,c.b]:[c.a]};
-function applyColor(i){
-  colorIdx=COLORS[i]?i:0;
-  const c=COLORS[colorIdx];const r=document.documentElement.style;
+/* custom wax: any hex, highlight/shadow mixed toward white/black */
+const HEX=/^#?[0-9a-f]{6}$/i;
+function mix(hex,to,t){
+  const n=parseInt(hex.replace('#',''),16),c=[n>>16,n>>8&255,n&255].map(v=>Math.round(v+(to-v)*t));
+  return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function customWax(c1,c2){
+  c1='#'+c1.replace('#','').toLowerCase();
+  const w={n:'Custom',a:c1,h:mix(c1,255,.3),l:mix(c1,0,.45)};
+  if(c2&&HEX.test(c2))w.b='#'+c2.replace('#','').toLowerCase();
+  return w;
+}
+let wax=COLORS[0];
+const waxColors=()=>wax.b?[wax.a,wax.b]:[wax.a];
+function applyWax(c){
+  wax=c;const r=document.documentElement.style;
   r.setProperty('--seal',c.a);r.setProperty('--seal-hi',c.h);r.setProperty('--seal-lo',c.l);r.setProperty('--seal-bg',waxBg(c));
 }
+function applyColor(i){colorIdx=COLORS[i]?i:0;applyWax(COLORS[colorIdx])}
 const fontClass=f=>'f-'+(FONTS.includes(f)?f:'caveat');
 
 /* ---- music: YouTube id or direct audio url, stored in the letter ---- */
@@ -278,10 +308,18 @@ function initCreator(){
   COLORS.forEach((c,i)=>{
     const d=document.createElement('button');d.type='button';d.className='sw'+(i===0?' on':'');d.title=c.n;d.setAttribute('aria-label',c.n+' wax');
     d.style.background=waxBg(c);
-    d.onclick=()=>{colorIdx=i;[...sw.children].forEach(x=>x.classList.remove('on'));d.classList.add('on');applyColor(i)};
+    d.onclick=()=>{[...sw.children].forEach(x=>x.classList.remove('on'));d.classList.add('on');$('custom').classList.remove('on');colorIdx=i;applyColor(i)};
     sw.appendChild(d);
   });
   applyColor(0);
+  const useCustom=()=>{
+    colorIdx=-1;[...sw.children].forEach(x=>x.classList.remove('on'));$('custom').classList.add('on');
+    $('cc2').disabled=!$('ccSplit').checked;
+    applyWax(customWax($('cc1').value,$('ccSplit').checked?$('cc2').value:null));
+  };
+  ['cc1','cc2'].forEach(id=>$(id).addEventListener('input',useCustom));
+  $('ccSplit').addEventListener('change',useCustom);
+  $('cc1').addEventListener('click',useCustom);
   const sync=()=>{
     const t=$('to').value.trim();
     $('pvTo').textContent=t?('For '+t):'';
@@ -304,7 +342,7 @@ function initCreator(){
     const song=parseSong($('song').value);
     if(song===false){$('song').focus();return}
     const data={t:$('to').value.trim(),f:$('from').value.trim(),m:msg,s:$('signoff').value.trim(),
-      fo:$('font').value,c:colorIdx,i:($('initial').value||$('from').value||'A').trim().slice(0,2),
+      fo:$('font').value,...(colorIdx<0?{w:wax.a.slice(1),...(wax.b?{w2:wax.b.slice(1)}:{})}:{c:colorIdx}),i:($('initial').value||$('from').value||'A').trim().slice(0,2),
       ...(song||{}),...(song&&$('songName').value.trim()?{sn:$('songName').value.trim()}:{})};
     const url=location.origin+'/#'+await encode(data);
     $('link').value=url;$('result').classList.remove('hidden');
@@ -324,20 +362,21 @@ async function initViewer(hash){
   try{d=await decode(hash);if(!d||typeof d.m!=='string')throw 0}
   catch(e){document.body.innerHTML='<p style="padding:40px;text-align:center;font-size:1.4rem">This letter link looks damaged. Ask the sender to resend it.</p><p style="text-align:center"><a href="/" style="color:#c9a25c">Write your own letter</a></p>';return}
   $('viewer').classList.remove('hidden');
-  applyColor(Number(d.c)||0);
+  if(typeof d.w==='string'&&HEX.test(d.w))applyWax(customWax(d.w,typeof d.w2==='string'?d.w2:null));
+  else applyColor(Number(d.c)||0);
   $('vTo').textContent=d.t?('For '+d.t):'';
   $('vTo').classList.add(fontClass(d.fo));
   $('vCh').textContent=d.i||'';
   document.title=d.t?('A letter for '+d.t):'A letter for you';
 
-  const seal=$('seal'),scene=$('scene');
+  const seal=$('seal'),scene=$('scene'),music=setupMusic(d);
   let timer=null,opened=false;
-  const start=e=>{if(opened)return;e.preventDefault();seal.classList.add('hold');if(navigator.vibrate)navigator.vibrate(20);timer=setTimeout(openIt,900)};
+  const start=e=>{if(opened)return;e.preventDefault();music.play();seal.classList.add('hold');if(navigator.vibrate)navigator.vibrate(20);timer=setTimeout(openIt,900)};
   const stop=()=>{if(opened)return;seal.classList.remove('hold');clearTimeout(timer)};
   seal.addEventListener('pointerdown',start);
   ['pointerup','pointerleave','pointercancel'].forEach(ev=>seal.addEventListener(ev,stop));
   seal.addEventListener('contextmenu',e=>e.preventDefault());
-  seal.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIt()}});
+  seal.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();music.play();openIt()}});
   seal.tabIndex=0;seal.setAttribute('role','button');seal.setAttribute('aria-label','Break the wax seal');
 
   function openIt(){
@@ -345,7 +384,7 @@ async function initViewer(hash){
     seal.classList.remove('hold');seal.classList.add('broken');
     if(navigator.vibrate)navigator.vibrate([40,30,60]);
     shards();$('hint').style.visibility='hidden';
-    startMusic(d);
+    music.reveal();
     setTimeout(()=>scene.classList.add('open'),250);
     setTimeout(()=>showLetter(d),1900);
   }
@@ -375,27 +414,53 @@ async function initViewer(hash){
   $('replyBtn').onclick=()=>{location.href='/'};
 }
 
-/* ---- music ---- */
-function startMusic(d){
-  if(!d.y&&!d.a)return;
-  const box=$('music'),btn=$('musicBtn');let playing=true,ctl;
+/* ---- music ----
+   Browsers only allow sound after the reader touches the page, so the player is
+   loaded silently up front and told to play inside the seal-press gesture itself.
+   If a browser still refuses (mostly iPhones), the card asks for one tap on the video. */
+function setupMusic(d){
+  const none={play(){},reveal(){}};
+  if(!d.y&&!d.a)return none;
+  const box=$('music'),btn=$('musicBtn');
+  let playing=false,want=false,ready=false,doPlay,doPause;
   $('musicName').textContent=d.sn||'a song for you';
+  const sync=()=>{
+    btn.innerHTML=playing?'&#10073;&#10073;':'&#9654;';btn.setAttribute('aria-label',playing?'Pause music':'Play music');
+    box.classList.toggle('tap',want&&!playing&&box.classList.contains('vis'));
+  };
   if(d.y){
-    const f=document.createElement('iframe');
-    const q=new URLSearchParams({autoplay:1,playsinline:1,enablejsapi:1,loop:1,playlist:d.y,rel:0,start:d.yt||0,origin:location.origin});
-    f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(d.y)+'?'+q;
-    f.allow='autoplay; encrypted-media';f.title='Music';
-    f.referrerPolicy='strict-origin'; /* YouTube embeds need a referrer; the page itself sends none */
-    $('musicFrame').appendChild(f);
-    ctl=play=>f.contentWindow&&f.contentWindow.postMessage(JSON.stringify({event:'command',func:play?'playVideo':'pauseVideo',args:''}),'*');
+    let player;
+    window.onYouTubeIframeAPIReady=()=>{
+      player=new YT.Player('musicFrame',{host:'https://www.youtube-nocookie.com',videoId:d.y,width:112,height:63,
+        playerVars:{playsinline:1,rel:0,start:d.yt||0,loop:1,playlist:d.y,origin:location.origin},
+        events:{
+          onReady:()=>{ready=true;if(want)doPlay()},
+          onStateChange:e=>{
+            if(e.data===YT.PlayerState.ENDED){player.seekTo(d.yt||0,true);player.playVideo()}
+            playing=e.data===YT.PlayerState.PLAYING||e.data===YT.PlayerState.BUFFERING;sync();
+          }}});
+    };
+    const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
+    doPlay=()=>{if(!ready)return;player.unMute();player.setVolume(100);player.playVideo()};
+    doPause=()=>{if(ready)player.pauseVideo()};
   }else{
-    const au=new Audio(d.a);au.loop=true;au.play().catch(()=>{playing=false;sync()});
-    ctl=play=>play?au.play().catch(()=>{}):au.pause();
+    const au=new Audio(d.a);au.preload='auto';au.loop=true;$('musicFrame').remove();
+    au.addEventListener('playing',()=>{playing=true;sync()});au.addEventListener('pause',()=>{playing=false;sync()});
+    doPlay=()=>au.play().catch(()=>{});doPause=()=>au.pause();
   }
-  const sync=()=>{btn.innerHTML=playing?'&#10073;&#10073;':'&#9654;';btn.setAttribute('aria-label',playing?'Pause music':'Play music')};
-  btn.onclick=()=>{playing=!playing;ctl(playing);sync()};
+  const play=()=>{want=true;doPlay()};
+  btn.onclick=()=>{if(playing){want=false;doPause()}else play();sync()};
   sync();
-  setTimeout(()=>box.classList.add('vis'),1900);
+  return {
+    play,
+    reveal(){
+      setTimeout(()=>{box.classList.add('vis');sync()},1900);
+      /* any later touch also counts as permission to start */
+      const retry=()=>{if(want&&!playing)doPlay()};
+      document.addEventListener('pointerdown',retry);document.addEventListener('keydown',retry);
+      setTimeout(sync,3500);
+    }
+  };
 }
 
 /* ---- petals ---- */
